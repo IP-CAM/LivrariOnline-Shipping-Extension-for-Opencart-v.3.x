@@ -1,0 +1,969 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+    <id>Livrari Online</id>
+    <version>1.0.0</version>
+    <vqmver required="true">2.6.0</vqmver>
+    <author>DevPro Solutions, office@devpro.ro</author>
+
+    <file name="admin/controller/sale/order.php">
+        <operation error="skip" info="load variables">
+            <search position="after" index="1"><![CDATA[
+                if ($order_info) {
+            ]]></search>
+            <add><![CDATA[
+                // construiesc selectul pentru servicii
+                $data['denumiri_servicii_pachetomat'] = $this->config->get('livrarionline_denumire_serviciu_pachetomat');
+                $data['id_servicii_pachetomat'] = $this->config->get('livrarionline_id_serviciu_pachetomat');
+                $data['id_shipping_company_pachetomat'] = $this->config->get('livrarionline_id_shipping_company_pachetomat');
+
+                $data['denumiri_servicii_national'] = $this->config->get('livrarionline_denumire_serviciu_national');
+                $data['id_servicii_national'] = $this->config->get('livrarionline_id_serviciu_national');
+                $data['id_shipping_company_national'] = $this->config->get('livrarionline_id_shipping_company_national');
+
+                // construiesc lista de servicii
+                $hasLivrariOnlineShipping = strpos($order_info['shipping_code'], 'livrarionline.') === 0;
+                $isPachetomat = false;
+                $plationline_payment = ($order_info['payment_code'] == 'plationline');
+
+                $loMethodSubId = 0;
+                $loMethodName = '';
+                $loMethodValue = '';
+                if ($hasLivrariOnlineShipping) {
+                  $isPachetomat = strpos($order_info['shipping_code'], '.p.') !== false;
+                  if ($isPachetomat) {
+                    $loMethodName = substr($order_info['shipping_code'], strlen('livrarionline.'), strpos($order_info['shipping_code'], '.p.') - strlen('livrarionline.'));
+                    $loMethodSubId = substr($order_info['shipping_code'], strrpos($order_info['shipping_code'], '.') + 1);
+                  } else {
+                    $loMethodName = substr($order_info['shipping_code'], strlen('livrarionline.'));
+                  }
+                }
+                $data['isPachetomat'] = $isPachetomat;
+                $data['plationline_payment'] = $plationline_payment;
+                $data['select_serviciu'] = '<select class="form-control" id="serviciuid" name="serviciuid"' . ($hasLivrariOnlineShipping ? ' disabled' : '') . '>';
+
+                // servicii pachetomate
+                for ($i=0; $i<count($data['id_servicii_pachetomat']); $i++) {
+                    $data['select_serviciu'] .= '<option value="'.$data['id_servicii_pachetomat'][$i] . '|' . $data['id_shipping_company_pachetomat'][$i] . '|' . $data['denumiri_servicii_pachetomat'][$i] . '"';
+                    if ($isPachetomat && $loMethodName == str_replace(" ", "_", $data['denumiri_servicii_pachetomat'][$i])) {
+                        if ($loMethodSubId) {
+                            $data['select_serviciu'] .= ' selected>' . $data['denumiri_servicii_pachetomat'][$i] . ' - ' . $this->db->query("SELECT dp_denumire FROM lo_delivery_points WHERE dp_id = " . $loMethodSubId)->row['dp_denumire'];
+                        }
+                        $loMethodValue = $data['id_servicii_pachetomat'][$i] . '|' . $data['id_shipping_company_pachetomat'][$i] . '|' . $data['denumiri_servicii_pachetomat'][$i];
+                    } else {
+                      $data['select_serviciu'] .= '>' . $data['denumiri_servicii_pachetomat'][$i];
+                    }
+                    $data['select_serviciu'] .= '</option>';
+                }
+
+                // servicii nationale
+                for ($i=0; $i<count($data['id_servicii_national']); $i++) {
+                    $data['select_serviciu'] .= '<option value="'.$data['id_servicii_national'][$i] . '|' . $data['id_shipping_company_national'][$i] . '|' . $data['denumiri_servicii_national'][$i] . '"';
+                    if (!$isPachetomat && $loMethodName == str_replace(" ", "_", $data['denumiri_servicii_national'][$i])) {
+                      $data['select_serviciu'] .= ' selected>' . $data['denumiri_servicii_national'][$i];
+                      $loMethodValue = $data['id_servicii_national'][$i] . '|' . $data['id_shipping_company_national'][$i] . '|' . $data['denumiri_servicii_national'][$i];
+                    } else {
+                      $data['select_serviciu'] .= '>' . $data['denumiri_servicii_national'][$i];
+                    }
+                    $data['select_serviciu'] .= '</option>';
+                }
+                $data['select_serviciu'] .= '</select>';
+
+                if ($hasLivrariOnlineShipping) {
+                  $data['select_serviciu'] .= '<input type="hidden" name="serviciuid" value="' . $loMethodValue . '" />';
+                }
+
+                //construiesc lista cu punctele de ridicare
+                $data['shops'] = '<select class="form-control" name="shops">';
+                $data['denumire_punct_ridicare'] = $this->config->get('livrarionline_denumire_punct_ridicare');
+                $data['livrarionline_loginid'] = $this->config->get('livrarionline_loginid');
+
+                for ($i=0; $i<count($data['denumire_punct_ridicare']); $i++) {
+                    $data['shops'] .= '<option value="' . $data['denumire_punct_ridicare'][$i] . '">' . $data['denumire_punct_ridicare'][$i] . '</option>';
+                }
+                $data['shops'] .= '</select>';
+
+                $data['livrarionline_statusawb'] = $this->config->get('livrarionline_statusawb');
+                $data['livrarionline_statusawb_name'] = $this->db->query("SELECT name FROM `" . DB_PREFIX . "order_status` WHERE order_status_id = " . intval($data['livrarionline_statusawb']));
+                $data['livrarionline_statusawb_name'] = $data['livrarionline_statusawb_name']->num_rows ? $data['livrarionline_statusawb_name']->row['name'] : '';
+
+                $data['lo_warning'] = false;
+                if ($order_info['order_status_id'] != $data['livrarionline_statusawb']) {
+                    $data['lo_warning'] = true;
+                }
+
+                // caut awb pentru comanda
+                $data['lo_raspuns'] = $this->db->query("SELECT * FROM `" . DB_PREFIX . "livrarionline` WHERE `order_id` = '" . (int)$order_id . "' limit 1")->rows;
+                $data['lo_raspuns'] = isset($data['lo_raspuns'][0]) ? $data['lo_raspuns'][0] : NULL;
+                $data['lo_raspuns']['date_added'] = date('d-m-Y H:i:s', strtotime($data['lo_raspuns']['date_added']));
+
+                $data['lo_date'] = date('Y-m-d');
+                $data['lo_hour'] = date('H:i:s');
+                $data['lo_comment'] = substr($order_info['comment'], 0, 250);
+
+                $this->load->model('catalog/product');
+                $data['lo_total'] = number_format($order_info['total'], 2, '.', '');
+                $data['lo_total_weight'] = 1;
+                foreach ($this->model_sale_order->getOrderProducts($order_id) as $op) {
+                    $product_details = $this->model_catalog_product->getProduct($op['product_id']);
+                    $data['lo_total_weight'] += round($product_details['weight']/1000,2);
+                }
+
+                $data['currency_code'] = $order_info['currency_code'];
+
+                $data['lo_f_request_awb'] = base64_encode(json_encode(array(
+                    'destinatar' => array(
+                        'first_name'      => $order_info['firstname'],
+                        'last_name'       => $order_info['lastname'],
+                        'email'           => $order_info['email'],
+                        'phone'           => $order_info['telephone'],
+                        'mobile'          => $order_info['telephone'],
+                        'lang'            => $order_info['language_code'],
+                        'company_name'    => $order_info['shipping_company'],
+                        'j'               => '',
+                        'bank_account'    => '',
+                        'bank_name'       => '',
+                        'cui'             =>''
+                    ),
+                    'shipTOaddress' => array(
+                        'address1'        => $order_info['shipping_address_1'],
+                        'address2'        => $order_info['shipping_address_2'],
+                        'city'            => $order_info['shipping_city'],
+                        'state'           => $order_info['shipping_zone'],
+                        'zip'             => $order_info['shipping_postcode'],
+                        'country'         => $order_info['shipping_country'],
+                        'phone'           => $order_info['telephone'],
+                        'observatii'      => ''
+                    )
+                )));
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/view/template/sale/order_info.twig">
+        <operation error="skip" info="resfresh page after status change">
+            <search position="after"><![CDATA[
+                $('textarea[name=\'comment\']').val('');
+            ]]></search>
+            <add><![CDATA[
+                location.reload();
+            ]]></add>
+        </operation>
+
+        <operation error="skip" info="tab title">
+            <search position="before" index="1"><![CDATA[
+                {% for tab in tabs %}
+            ]]></search>
+            <add><![CDATA[
+                <li><a href="#tab-livrarionline" data-toggle="tab">Livrari online</a></li>
+            ]]></add>
+        </operation>
+
+        <operation error="skip" info="tab content">
+            <search position="before" index="2"><![CDATA[
+                {% for tab in tabs %}
+            ]]></search>
+            <add><![CDATA[
+<style>
+#tab-livrarionline table.borderless td, #tab-livrarionline table.borderless th {
+  border: none !important;
+}
+</style>
+<div id="tab-livrarionline" class="tab-pane">
+  {% if lo_warning %}
+  <div class="warning" style="text-align:center">Conform setarilor modulului LivrariOnline, <b>generarea de AWB</b> pentru aceasta comanda este disponibila doar in statusul <b>{{ livrarionline_statusawb_name }}</b></div>
+  {% else %}
+  <link rel="stylesheet" type="text/css" href="../catalog/model/extension/shipping/lo/style.css">
+  <div id="livrare" style="padding:0 10px;">
+    <h3>Detalii livrare</h3>
+    <span>Comanda nr. <strong>{{ order_id }}</strong></span>
+    {% if lo_raspuns.awb %}
+    {% set var = 'none' %}
+    {% else %}
+    {% set var = 'block' %}
+    {% endif %}
+    <form name="awb" id="awb" method="post" action="index.php?route=extension/shipping/livrarionline/getAWB&user_token={{ user_token }}" style="display: {{ var }}; border-top: 1px dashed #999; padding: 5px 0; margin: 5px 0;">
+      {% if not lo_raspuns.awb %}
+      <table cellspacing="2" cellpadding="2" width="100%" class="table borderless">
+        <tr>
+          <td width="70%">
+            <input type="hidden" id="orders_id" name="orders_id" value="{{ order_id }}" />
+            <input type="hidden" id="site" name="site" value="{{ store_name }}" />
+            <table class="table">
+              <tbody>
+                <tr>
+                  <td style="text-align:right;"><label for="serviciuid">Alegeti un serviciu</label></td>
+                  <td>{{ select_serviciu }}</td>
+                </tr>
+                <tr style="display:none">
+                  <td style="text-align:right;display:none"><label for="request_data_ridicare">Data ridicare</label></td>
+                  <td><input type="hidden" id="request_data_ridicare" name="request_data_ridicare" value="{{ lo_date }}" /></td>
+                </tr>
+                <tr style="display:none">
+                  <td style="text-align:right;display:none"><label for="request_ora_ridicare">Ora ridicare</label></td>
+                  <td><input type="hidden" id="request_ora_ridicare" name="request_ora_ridicare" value="{{ lo_hour }}" /></td>
+                </tr>
+                <tr style="display:none">
+                  <td style="text-align:right;display:none"><label for="request_ora_ridicare_end">End Ora ridicare</label></td>
+                  <td><input type="hidden" id="request_ora_ridicare_end" name="request_ora_ridicare_end" value="{{ lo_hour }}" /></td>
+                </tr>
+                <tr style="display:none">
+                  <td style="text-align:right;display:none"><label for="request_ora_livrare_sambata">Ora livrare sambata</label></td>
+                  <td><input type="hidden" id="request_ora_livrare_sambata" name="request_ora_livrare_sambata" value="{{ lo_hour }}" /></td>
+                </tr>
+                <tr style="display:none">
+                  <td style="text-align:right;display:none"><label for="request_ora_livrare_end_sambata">End ora livrere sambata</label></td>
+                  <td><input type="hidden" id="request_ora_livrare_end_sambata" name="request_ora_livrare_end_sambata" value="{{ lo_hour }}" /></td>
+                </tr>
+                <tr style="display:none">
+                  <td style="text-align:right;display:none"><label for="request_ora_livrare">Ora livrare</label></td>
+                  <td><input type="hidden" id="request_ora_livrare" name="request_ora_livrare" value="{{ lo_hour }}" /></td>
+                </tr>
+                <tr style="display:none">
+                  <td style="text-align:right;display:none"><label for="request_ora_livrare_end">End Ora livrare</label></td>
+                  <td><input type="hidden" id="request_ora_livrare_end" name="request_ora_livrare_end" value="{{ lo_hour }}" /></td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;"><label for="descriere_livrare">Descriere livrare</label></td>
+                  <td><input class="form-control" type="text" size="80" id="descriere_livrare" name="descriere_livrare" value="{{ lo_comment }}" /></td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;"><label for="referinta_expeditor">Referinta expeditor</label></td>
+                  <td><input class="form-control" type="text" size="80" id="referinta_expeditor" name="referinta_expeditor" value="{{ store_name }} - Comanda nr. {{ order_id }}" /></td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;"><label for="valoare_declarata">Valoare declarata</label></td>
+                  <td><input class="form-control" type="text" id="valoare_declarata" name="valoare_declarata" value="{{ lo_total }}" /></td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;"><label for="ramburs">Ramburs</label></td>
+                  {% if (isPachetomat or plationline_payment) %}
+                  {% set var = 0 %}
+                  {% else %}
+                  {% set var = lo_total %}
+                  {% endif %}
+                  <td><input class="form-control" type="text" id="ramburs" name="ramburs" value="{{ var }}" /></td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;"><label for="currency">Moneda</label></td>
+                  <td><input class="form-control" type="text" id="currency" name="currency" value="{{ currency_code }}" /></td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;display:none"><label for="currency_ramburs">Moneda ramburs</label></td>
+                  <td><input type="hidden" id="currency_ramburs" name="currency_ramburs" value="{{ currency_code }}" /></td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;"><label for="cine_plateste">Cine plateste</label></td>
+                  <td>
+                    <select class="form-control" name="cine_plateste" id="cine_plateste">
+                      <option value="0" selected>Comerciant</option>
+                      <option value="1">Expeditor</option>
+                      <option value="2">Destinatar</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="text-align:right;"><label for="shops">Ridicare din</label></td>
+                  <td>{{ shops }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+          <td width="30%">
+            <input type="checkbox" name="asigurare_la_valoarea_declarata" id="asigurare_la_valoarea_declarata" value="1">Asigurare la valoarea declarata<br />
+            <input type="checkbox" name="retur_documente" id="retur_documente" value="1">Retur documente<br />
+            <input type="checkbox" name="retur_documente_bancare" id="retur_documente_bancare" value="1">Retur documente bancare<br />
+            <input type="checkbox" name="confirmare_livrare" id="confirmare_livrare" value="1">Confirmare livrare<br />
+            <input type="checkbox" name="livrare_sambata" id="livrare_sambata" value="1">Livrare sambata<br />
+            <input type="checkbox" name="notificare_email" id="notificare_email" value="1" checked>Notificare email<br />
+            <input type="checkbox" name="notificare_sms" id="notificare_sms" value="1">Notificare sms<br />
+            <input type="checkbox" name="request_mpod" id="request_mpod" value="1">Confirmare livrare comerciant<br />
+          </td>
+        </tr>
+      </table>
+      <div id="detalii-pachete" style="border-top: 1px dashed #999; border-bottom: 1px dashed #999; margin: 5px 0 10px; padding-bottom: 10px;">
+        <h3>Detalii pachete</h3>
+        <p>Numar pachete <input type="text" readonly="readonly" value="1" id="nrcolete" size="2" style="border: 1px dashed #ddd; font-size: 14px; font-weight: bold; text-align:center;"/></p>
+        <table class="table" id="colete" cellspacing="2" cellpadding="2" style="width:100%; text-align:center; border-collapse: collapse; margin-bottom: 5px;">
+          <thead>
+            <tr>
+              <th style="background: #eee; border-right: 2px solid #fff">Tip pachet</th>
+              <th style="background: #eee; border-right: 2px solid #fff">Continutul</th>
+              <th style="background: #eee; border-right: 2px solid #fff">Greutatea (kg)</th>
+              <th style="background: #eee; border-right: 2px solid #fff">Lungime pachet (cm)</th>
+              <th style="background: #eee; border-right: 2px solid #fff">Latime pachet (cm)</th>
+              <th style="background: #eee; border-right: 2px solid #fff">Inaltime pachet (cm)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <select class="form-control" name="tipcolet[]" style="padding: 4px 5px;">
+                  <option value="1">Plic</option>
+                  <option value="2" selected="selected">Colet</option>warning
+                  <option value="3">Palet</option>
+                </select>
+              </td>
+              <td>
+                <select class="form-control" name="continut[]" style="padding: 4px 5px;">
+                  <option value="1">Acte</option>
+                  <option value="2">Tipizate</option>
+                  <option value="3">Fragile</option>
+                  <option value="4" selected="selected">Generale</option>
+                </select>
+              </td>
+              <td>
+                <input class="form-control" style="text-align:right; width: 50px; padding: 4px 5px;" type="text" name="greutate[]" value="{{ lo_total_weight }}" />
+              </td>
+              <td>
+                <input class="form-control" style="text-align:right; width: 50px; padding: 4px 5px;" type="text" name="lungime[]" value="1" />
+              </td>
+              <td>
+                <input class="form-control" style="text-align:right; width: 50px; padding: 4px 5px;" type="text" name="latime[]" value="1" />
+              </td>
+              <td>
+                <input class="form-control" style="text-align:right; width: 50px; padding: 4px 5px;" type="text" name="inaltime[]" value="1" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div><button type="button" class="btn btn-update" id="adauga-pachet">+ Adauga pachet</button></div>
+      </div>
+      <input type="hidden" name="f_request_awb" id="f_request_awb" value="{{ lo_f_request_awb }}" />
+      <button type="submit" id="get-awb">Genereaza AWB &raquo;</button>
+    {% endif %}
+    </form>
+    <div id="holder-awb-generat">
+      {% if lo_raspuns.awb %}
+      <p>Comanda expediata la data <b>{{ lo_raspuns.date_added }}</b> cu AWB: <b>{{ lo_raspuns.awb }}</b> prin serviciul <b>{{ lo_raspuns.serviciu }}</b></p>
+      <form name="form-tracking-awb" id="form-tracking-awb" method="post" action="index.php?route=extension/shipping/livrarionline/trackingAWB&user_token={{ user_token }}">
+        <input type="hidden" name="tawb" id="tawb" value="{{ lo_raspuns.awb }}"/>
+        <input type="hidden" name="f_login" value="{{ livrarionline_loginid }}" />
+        <input class="form-control" type="submit" id="tracking-awb" style="width: auto;" value="Tracking AWB"/>
+      </form>
+
+      <form name="form-cancel-awb" id="form-cancel-awb" method="post" action="index.php?route=extension/shipping/livrarionline/cancelAWB&user_token={{ user_token }}">
+        <input type="hidden" name="cawb" id="cawb" value="{{ lo_raspuns.awb }}"/>
+        <input type="hidden" name="f_login" value="{{ livrarionline_loginid }}"/>
+        <input class="form-control" type="submit" id="cancel-awb" style="width: auto;" value="Cancel AWB"/>
+      </form>
+
+      <a id="print-awb" href="http://api.livrarionline.ro/Lobackend_print/PrintAwb.aspx?f_login={{ livrarionline_loginid }}&awb={{ lo_raspuns.awb }}" target="_blank">Click pentru print AWB</a>
+      {% endif %}
+    </div>
+    <div id="rezultat-awb"></div>
+    <div id="rezultat"></div>
+  </div>
+  {% endif %}
+</div>
+            ]]></add>
+        </operation>
+
+        <operation error="skip" info="tab script">
+            <search position="before" index="1"><![CDATA[
+                //--></script>
+            ]]></search>
+            <add><![CDATA[
+
+$(document).ready(function() {
+  var $formAWB = $('#awb');
+  var $rezultat = $('#rezultat');
+  var $rezultatAWB = $('#rezultat-awb');
+  var $overlayPreloader = $('#loading_overlay');
+  var $holderAwbGenerat = $('#holder-awb-generat');
+  var $getAwb = $('#get-awb');
+  $overlayPreloader.fadeOut('fast');
+
+  $getAwb.on("click", function(e){
+    e.preventDefault();
+    /* Inlocuieste butonul Genereaza AWB cu un mesag */
+    $(this).hide().after('<span class="processing">Se proceseaza, va rugam asteptati...</span>');
+    $overlayPreloader.fadeIn('fast');
+    $rezultat.html('');
+
+    $.ajax({
+      type  : "post",
+      url   : "index.php?route=extension/shipping/livrarionline/getAWB&user_token={{ user_token }}",
+      data  : $formAWB.serialize(),
+      error : function(tXMLHttpRequest, textStatus, errorThrown) {
+        $overlayPreloader.fadeOut('fast');
+        alert('XMLHttpRequest.status: ' + tXMLHttpRequest.status
+          + '\n textStatus: ' + textStatus
+          + '\n errorThrown: ' + errorThrown
+        );
+        // Verifica daca este eroare de DB
+        if (textStatus.search(/Warning/i) < 0 && textStatus.search(/Error/i) < 0) {
+          alert('Eroare: ' + tXMLHttpRequest.status);
+        }
+      },
+      success : function(mesaj){
+        $overlayPreloader.fadeOut('fast');
+        if ($.trim(mesaj)!="error") {
+          $holderAwbGenerat.html(mesaj);
+          $formAWB.hide();
+        } else {
+          alert('Nu s-a putut genera AWB-ul');
+        };
+      }
+    });
+  });
+
+  $('#tab-livrarionline').on('click', '#tracking-awb', function(ev){
+    ev.preventDefault();
+    $overlayPreloader.fadeIn('fast');
+    $rezultat.hide();
+    $this=$(this);
+    $this.closest('#holder-awb-generat').after('<span class="processing">Se proceseaza, va rugam asteptati...</span>');
+
+    $.ajax({
+      type  : "POST",
+      url   : "index.php?route=extension/shipping/livrarionline/trackingAWB&user_token={{ user_token }}",
+      data  : $('#form-tracking-awb').serialize(),
+      error : function(tXMLHttpRequest, textStatus, errorThrown) {
+        $overlayPreloader.fadeOut('fast');
+        alert('XMLHttpRequest.status: ' + tXMLHttpRequest.status
+          + '\n textStatus: ' + textStatus
+          + '\n errorThrown: ' + errorThrown
+        );
+        // Verifica daca este eroare de DB
+        if (textStatus.search(/Warning/i) < 0 && textStatus.search(/Error/i) < 0) {
+          alert('Eroare: ' + tXMLHttpRequest.status);
+        }
+      },
+      success : function(mesaj){
+        $overlayPreloader.fadeOut('fast');
+        $rezultat.html(mesaj).fadeIn('fast');
+        $this.closest('#holder-awb-generat').next().remove();
+      }
+    });
+  });
+
+  $('#tab-livrarionline').on('click', '#cancel-awb', function(ev){
+    ev.preventDefault();
+    $('#form-tracking-awb').hide();
+    $('#print-awb').hide();
+    $(this).hide().after('<span class="processing">Se proceseaza, va rugam asteptati...</span>');
+    $overlayPreloader.fadeIn('fast');
+
+    $.ajax({
+      type  : "POST",
+      url   : "index.php?route=extension/shipping/livrarionline/cancelAWB&user_token={{ user_token }}",
+      data  : $('#form-cancel-awb').serialize(),
+      error : function(tXMLHttpRequest, textStatus, errorThrown) {
+        $overlayPreloader.fadeOut('fast');
+        alert('XMLHttpRequest.status: ' + tXMLHttpRequest.status
+          + '\n textStatus: ' + textStatus
+          + '\n errorThrown: ' + errorThrown
+        );
+        // Verifica daca este eroare de DB
+        if (textStatus.search(/Warning/i) < 0 && textStatus.search(/Error/i) < 0) {
+          alert('Eroare: ' + tXMLHttpRequest.status);
+        }
+      },
+      success : function(mesaj){
+        $overlayPreloader.fadeOut('fast');
+        if ($.trim(mesaj) == "success") {
+          $rezultat.html('AWB-ul a fost anulat').fadeIn('fast');
+          $rezultatAWB.html('');
+          /* Reafiseaza formularul initial */
+          console.log('canceled - Reafiseaza formularul initial');
+          console.log('$formAWB'); console.log($formAWB);
+          console.log('$holderAwbGenerat'); console.log($holderAwbGenerat);
+          $formAWB.show();
+          $formAWB.find('span.processing').remove();
+          $getAwb.show();
+
+          $holderAwbGenerat.html('');
+        } else {
+          $rezultat.html(mesaj).fadeIn('fast');
+        }
+      }
+    });
+  });
+  $('#adauga-pachet').on('click',function(){
+    var clonedRow = $('tbody>tr:last', '#colete').clone().find(':input').val(0).end();
+    clonedRow.find('select').val(1).end();
+    $('tbody>tr:last', '#colete').after(clonedRow);
+    var $nrcolete = $('#nrcolete');
+    $nrcolete.val(parseInt($nrcolete.val())+1);
+  });
+});
+            ]]></add>
+        </operation>
+    </file>
+    <file name="catalog/model/extension/payment/cod.php">
+        <operation>
+            <search position="before"><![CDATA[$method_data = array();]]></search>
+            <add><![CDATA[
+			if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
+			    if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
+			        $status = false;
+			    }
+			}
+			]]>
+            </add>
+        </operation>
+    </file>
+    <file name="catalog/controller/checkout/shipping_method.php">
+        <operation>
+            <search position="before"><![CDATA[$this->response->addHeader('Content-Type: application/json');]]></search>
+            <add><![CDATA[
+            if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
+                if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
+                    if (empty($this->session->data['dp_id'])) {
+                        $this->load->language('extension/shipping/livrarionline');
+                        $json['error']['warning'] = $this->language->get('error_select_delivery_point');
+                    }
+                }
+			}
+			]]>
+            </add>
+        </operation>
+    </file>
+    <file name="catalog/controller/checkout/confirm.php">
+        <operation>
+            <search position="before"><![CDATA[// Validate if payment address has been set.]]></search>
+            <add><![CDATA[
+            if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
+                if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
+                    if (empty($this->session->data['dp_id'])) {
+                        $redirect = $this->url->link('checkout/checkout', '', true);
+                    }
+                }
+			}
+			]]>
+            </add>
+        </operation>
+    </file>
+    <file name="catalog/controller/checkout/checkout.php">
+        <operation error="skip" info="load variables">
+            <search position="after" index="1"><![CDATA[
+              $data['shipping_required'] =
+            ]]></search>
+            <add><![CDATA[
+              $this->document->addScript('catalog/view/javascript/livrarionline-public.js');
+              $this->document->addScript('catalog/view/javascript/livrarionline.js');
+              $this->document->addStyle('catalog/model/extension/shipping/lo/style.css');
+              $data['gmaps_api_key'] = $this->config->get('livrarionline_gmaps_key');
+              require_once('catalog/model/extension/shipping/lo/lib/lo.php');
+              $lo = new LivrariOnline\LO();
+
+              $data['delivery_points'] = $this->db->query(
+                "SELECT
+                  dp.*,
+                  COALESCE(group_concat(
+                    CASE
+                      WHEN p.day_active = 0 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Inchis</b>')
+                      WHEN p.day_active = 1 and day_sort_order > 5 THEN CONCAT('<div>', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                      WHEN p.day_active = 2 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Non-Stop</b>')
+                      WHEN p.day_active = 0 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Inchis</b>')
+                      WHEN p.day_active = 1 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                      WHEN p.day_active = 2 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Non-Stop</b>')
+                    END
+                    order by p.day_sort_order
+                    separator '</div>'
+                  ),' - ') as orar
+                FROM
+                  lo_delivery_points dp
+                    LEFT JOIN
+                  lo_dp_program p ON dp.dp_id = p.dp_id and day_sort_order > 4
+                WHERE
+                  dp_active > 0
+                " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
+                group by
+                  dp.dp_id
+                order by
+                    dp.dp_active asc, dp.dp_denumire asc"
+              )->rows;
+
+              foreach ($data['delivery_points'] as $i => $pachetomat) {
+                $data['delivery_points'][$i]['dp_denumire'] .=  ' - Temperatura: ' . intval($pachetomat['dp_temperatura']) . ' C';
+              }
+
+              $data['delivery_points_states'] = $this->db->query("SELECT
+                    distinct dp_judet as judet
+                FROM
+                    lo_delivery_points dp
+                WHERE
+                  dp_active > 0
+                " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
+                order by
+                    dp.dp_judet asc"
+              )->rows;
+
+              $data['judet'] = isset($this->session->data['judet']) ?$this->session->data['judet']: '';
+              $data['lo_delivery_points_select'] = '';
+              $data['dp_id'] = isset($this->session->data['dp_id']) ?$this->session->data['dp_id']: '';
+              $data['dp_name'] = isset($this->session->data['dp_name']) ?$this->session->data['dp_name']: '';
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/view/theme/*/template/checkout/checkout.twig">
+        <operation error="skip" info="scripts">
+            <search position="before" index="1"><![CDATA[
+              {{ footer }}
+            ]]></search>
+            <add><![CDATA[
+<div id="harta-pp" class="pp-container">
+    <div class="pp-panel">
+        <div class="pp-panel__header">
+            <div class="pp-col">
+                <div class="pp-form-group">
+                    <select id="judete" class="pp-form-control pp-chosen-select">
+                        <option value="0" selected disabled>Selectati un judet</option>
+                        {% for dp in delivery_points_states %}
+                          {% if judet == dp.judet %}
+                          {% set selected = 'selected' %}
+                          {% else %}
+                          {% set selected = '' %}
+                          {% endif %}
+                            <option value="{{ dp.judet }}" {{ selected }}>{{ dp.judet }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="pp-col">
+                <div class="pp-form-group" style="display: none;">
+                    <!-- <label class="pp-control-label">Selecteaza Locatie</label> -->
+                    <select id="orase" class="pp-form-control pp-chosen-select">
+                    </select>
+                </div>
+            </div>
+            <div class="pp-col">
+                <div class="pp-form-group" style="display: none;">
+                    <!-- <label class="pp-control-label">Selecteaza Pachetomat</label> -->
+                    <select id="pachetomate" class="pp-form-control pp-chosen-select">
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="pp-panel__body">
+            <div class="pp-map-wrap">
+                <div class="pp-map">
+                    <div class="pp-map__item">
+                        <div class="pp-map__item" id="pp-map-canvas"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pp-panel__footer">
+            <button type="button" id="pp-close">Inchide fereastra</button>
+        </div>
+    </div>
+</div>
+<input type='hidden' name='lo_delivery_points_select' id='lo_delivery_points_select' value="{{ lo_delivery_points_select }}">
+<script type="text/javascript">
+    let js_file = document.createElement('script');
+    js_file.type = 'text/javascript';
+    js_file.src = 'https://maps.googleapis.com/maps/api/js?key={{ gmaps_api_key }}&language=en';
+    js_file.async = true;
+    js_file.defer = true;
+    document.getElementsByTagName('head')[0].appendChild(js_file);
+
+    var ppLocationsArray = {{ delivery_points|json_encode() }};
+    var last_dp_id = "{{ dp_id }}";
+    var last_dp_name = "{{ dp_name }}";
+    var icon = "catalog/view/theme/default/image/location-pin.png";
+</script>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/api/shipping.php">
+        <operation error="skip" info="load variables">
+            <search position="before" index="1"><![CDATA[
+              public function address() {
+            ]]></search>
+            <add><![CDATA[
+              public function livrarionline_issn() {
+                  $loginid = $this->config->get('livrarionline_loginid');
+                  $key = $this->config->get('livrarionline_key');
+                  require_once('catalog/model/extension/shipping/lo/lib/lo.php');
+                  $lo = new LivrariOnline\LO();
+                  $lo->f_login = $loginid;
+                  $lo->setRSAKey($key);
+                  try {
+                    $lo->issn($this->log);
+                  } catch (Exception $e) {
+                    $this->log->write($e->getMessage());
+                    die($e->getMessage());
+                  }
+              }
+
+              public function livrarionline_localitati() {
+                  $localitati = $this->db->query(
+                    "SELECT
+                        distinct dp_oras as oras
+                    FROM
+                        lo_delivery_points dp
+                    WHERE
+                      dp_active > 0 and dp_judet = '" . trim($_POST['judet']) . "'
+                      " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
+                    order by
+                        dp.dp_oras asc"
+                  )->rows;
+
+                  $pachetomate = $this->db->query(
+                    "SELECT
+                      dp.*,
+                      COALESCE(group_concat(
+                        CASE
+                          WHEN p.day_active = 0 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Inchis</b>')
+                          WHEN p.day_active = 1 and day_sort_order > 5 THEN CONCAT('<div>', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                          WHEN p.day_active = 2 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Non-Stop</b>')
+                          WHEN p.day_active = 0 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Inchis</b>')
+                          WHEN p.day_active = 1 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                          WHEN p.day_active = 2 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Non-Stop</b>')
+                        END
+                        order by p.day_sort_order
+                        separator '</div>'
+                      ),' - ') as orar
+                    FROM
+                      lo_delivery_points dp
+                        LEFT JOIN
+                      lo_dp_program p ON dp.dp_id = p.dp_id and day_sort_order > 4
+                    WHERE
+                      dp_active > 0
+                    " . (trim($_POST['judet']) ? ' and dp_judet = "' . trim($_POST['judet']) . '"' : '') . "
+                      " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
+                    group by
+                      dp.dp_id
+                    order by
+                        dp_judet asc, dp_oras asc, dp.dp_denumire asc, dp.dp_active asc"
+                  )->rows;
+
+                  foreach ($pachetomate as $i => $pachetomat) {
+                    $pachetomate[$i]['dp_denumire'] .=  ' - Temperatura: ' . intval($pachetomate[$i]['dp_temperatura']) . ' C';
+                  }
+
+                  echo json_encode(array(
+                    'count' => count($localitati),
+                    'orase' => $localitati,
+                    'pachetomate' => $pachetomate,
+                    'jselected' => isset($this->session->data['judet']) ?$this->session->data['judet']: '',
+                    'selected' => isset($this->session->data['oras']) ?$this->session->data['oras']: '',
+                    'pselected' => isset($this->session->data['dp_id']) ?$this->session->data['dp_id']: '',
+                    'selected_name' => isset($this->session->data['dp_name']) ?$this->session->data['dp_name']: ''
+                  ));
+              }
+
+              public function livrarionline_pachetomate() {
+                $pachetomate = $this->db->query(
+                  "SELECT
+                    dp.*,
+                    COALESCE(group_concat(
+                      CASE
+                        WHEN p.day_active = 0 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Inchis</b>')
+                        WHEN p.day_active = 1 and day_sort_order > 5 THEN CONCAT('<div>', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                        WHEN p.day_active = 2 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Non-Stop</b>')
+                        WHEN p.day_active = 0 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Inchis</b>')
+                        WHEN p.day_active = 1 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                        WHEN p.day_active = 2 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Non-Stop</b>')
+                      END
+                      order by p.day_sort_order
+                      separator '</div>'
+                    ),' - ') as orar
+                  FROM
+                    lo_delivery_points dp
+                      LEFT JOIN
+                    lo_dp_program p ON dp.dp_id = p.dp_id and day_sort_order > 4
+                  WHERE
+                    dp_active > 0
+				          " . ($_POST['oras'] ? ' and dp_oras = "' . $_POST['oras'] . '"' : '') . "
+                  " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
+                  group by
+                    dp.dp_id
+                  order by
+                      dp.dp_active asc, dp.dp_denumire asc"
+                )->rows;
+
+                foreach ($pachetomate as $i => $pachetomat) {
+                  $pachetomate[$i]['dp_denumire'] .=  ' - Temperatura: ' . intval($pachetomate[$i]['dp_temperatura']) . ' C';
+                }
+
+                echo json_encode(array(
+                  'count' => count($pachetomate),
+                  'pachetomate' => $pachetomate,
+                  'oselected' => isset($this->session->data['oras']) ?$this->session->data['oras']: '',
+                  'selected' => isset($this->session->data['dp_id']) ?$this->session->data['dp_id']: '',
+                  'selected_name' => isset($this->session->data['dp_name']) ?$this->session->data['dp_name']: ''
+                ));
+              }
+
+              public function livrarionline_pachetomat() {
+                require_once('catalog/model/extension/shipping/lo/lib/lo.php');
+                $lo = new LivrariOnline\LO();
+                $pachetomat = json_decode($lo->get_delivery_point_by_id(trim($_POST['pachetomat'])), true);
+                $pachetomat['denumire'] .= ' - Temperatura: ' . intval($this->db->query("SELECT dp_temperatura FROM lo_delivery_points WHERE dp_id = " . trim($_POST['pachetomat']))->row['dp_temperatura']) . ' C';
+
+                $this->session->data['judet'] = $pachetomat['judet'];
+                $this->session->data['oras'] = $pachetomat['localitate'];
+                $this->session->data['dp_id'] = trim($_POST['pachetomat']);
+                $this->session->data['dp_name'] = $pachetomat['denumire'];
+
+                echo json_encode(array(
+                  'pachetomat' => $pachetomat,
+                  'selected' => $this->session->data['dp_id'],
+                  'selected_name' => $this->session->data['dp_name']
+                ));
+              }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/journal3/checkout.php">
+        <operation error="skip" info="load variables">
+            <search position="before" index="1"><![CDATA[
+              $data['breadcrumbs'] = array();
+            ]]></search>
+            <add><![CDATA[
+              $this->journal3->document->addScript('catalog/view/javascript/livrarionline-public.js');
+              $this->journal3->document->addScript('catalog/view/javascript/livrarionline.js');
+              $this->journal3->document->addStyle('catalog/model/extension/shipping/lo/style.css');
+              $data['gmaps_api_key'] = $this->config->get('livrarionline_gmaps_key');
+              require_once('catalog/model/extension/shipping/lo/lib/lo.php');
+              $lo = new LivrariOnline\LO();
+
+              $data['delivery_points'] = $this->db->query(
+                "SELECT
+                  dp.*,
+                  COALESCE(group_concat(
+                    CASE
+                      WHEN p.day_active = 0 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Inchis</b>')
+                      WHEN p.day_active = 1 and day_sort_order > 5 THEN CONCAT('<div>', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                      WHEN p.day_active = 2 and day_sort_order > 5 THEN CONCAT('<div>', p.day, ': <b>Non-Stop</b>')
+                      WHEN p.day_active = 0 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Inchis</b>')
+                      WHEN p.day_active = 1 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.`day`, ': <b>', DATE_FORMAT(p.dp_start_program,'%H:%i'), '</b> - <b>', DATE_FORMAT(p.dp_end_program,'%H:%i'),'</b>')
+                      WHEN p.day_active = 2 and day_sort_order = 5 THEN CONCAT('<div>Luni - ', p.day, ': <b>Non-Stop</b>')
+                    END
+                    order by p.day_sort_order
+                    separator '</div>'
+                  ),' - ') as orar
+                FROM
+                  lo_delivery_points dp
+                    LEFT JOIN
+                  lo_dp_program p ON dp.dp_id = p.dp_id and day_sort_order > 4
+                WHERE
+                  dp_active > 0
+                " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
+                group by
+                  dp.dp_id
+                order by
+                    dp.dp_active asc, dp.dp_denumire asc"
+              )->rows;
+
+              foreach ($data['delivery_points'] as $i => $pachetomat) {
+                $data['delivery_points'][$i]['dp_denumire'] .=  ' - Temperatura: ' . intval($pachetomat['dp_temperatura']) . ' C';
+              }
+
+              $data['delivery_points_states'] = $this->db->query("SELECT
+                    distinct dp_judet as judet
+                FROM
+                    lo_delivery_points dp
+                WHERE
+                  dp_active > 0
+                " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
+                order by
+                    dp.dp_judet asc"
+              )->rows;
+
+              $data['judet'] = isset($this->session->data['judet']) ?$this->session->data['judet']: '';
+              $data['lo_delivery_points_select'] = '';
+              $data['dp_id'] = isset($this->session->data['dp_id']) ?$this->session->data['dp_id']: '';
+              $data['dp_name'] = isset($this->session->data['dp_name']) ?$this->session->data['dp_name']: '';
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/view/theme/*/template/journal3/checkout/checkout.twig">
+        <operation error="skip" info="scripts">
+            <search position="before" index="1"><![CDATA[
+              {{ footer }}
+            ]]></search>
+            <add><![CDATA[
+<div id="harta-pp" class="pp-container">
+    <div class="pp-panel">
+        <div class="pp-panel__header">
+            <div class="pp-col">
+                <div class="pp-form-group">
+                    <select id="judete" class="pp-form-control pp-chosen-select">
+                        <option value="0" selected disabled>Selectati un judet</option>
+                        {% for dp in delivery_points_states %}
+                          {% if judet == dp.judet %}
+                          {% set selected = 'selected' %}
+                          {% else %}
+                          {% set selected = '' %}
+                          {% endif %}
+                            <option value="{{ dp.judet }}" {{ selected }}>{{ dp.judet }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="pp-col">
+                <div class="pp-form-group" style="display: none;">
+                    <!-- <label class="pp-control-label">Selecteaza Locatie</label> -->
+                    <select id="orase" class="pp-form-control pp-chosen-select">
+                    </select>
+                </div>
+            </div>
+            <div class="pp-col">
+                <div class="pp-form-group" style="display: none;">
+                    <!-- <label class="pp-control-label">Selecteaza Pachetomat</label> -->
+                    <select id="pachetomate" class="pp-form-control pp-chosen-select">
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="pp-panel__body">
+            <div class="pp-map-wrap">
+                <div class="pp-map">
+                    <div class="pp-map__item">
+                        <div class="pp-map__item" id="pp-map-canvas"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pp-panel__footer">
+            <button type="button" id="pp-close">Inchide fereastra</button>
+        </div>
+    </div>
+</div>
+<input type='hidden' name='lo_delivery_points_select' id='lo_delivery_points_select' value="{{ lo_delivery_points_select }}">
+<script type="text/javascript">
+    let js_file = document.createElement('script');
+    js_file.type = 'text/javascript';
+    js_file.src = 'https://maps.googleapis.com/maps/api/js?key={{ gmaps_api_key }}&language=en';
+    js_file.async = true;
+    js_file.defer = true;
+    document.getElementsByTagName('head')[0].appendChild(js_file);
+
+    var ppLocationsArray = {{ delivery_points|json_encode() }};
+    var last_dp_id = "{{ dp_id }}";
+    var last_dp_name = "{{ dp_name }}";
+    var icon = "catalog/view/theme/default/image/location-pin.png";
+</script>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/journal3/checkout.php">
+        <operation>
+            <search position="after"><![CDATA[$json = $this->getCheckoutData($data);]]></search>
+            <add><![CDATA[
+            if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
+                if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
+                    if (empty($this->session->data['dp_id'])) {
+                        $this->load->language('extension/shipping/livrarionline');
+                        $error['shipping_code'] = $this->language->get('error_select_delivery_point');
+                    }
+                }
+			}
+			]]>
+            </add>
+        </operation>
+    </file>
+</modification>
