@@ -584,10 +584,11 @@ class LO
             $query = mysqli_query($this->conn, $sql);
         }
 
-        foreach ($lo_dp_program as $program) {
-            $check = mysqli_fetch_array(mysqli_query($this->conn, "SELECT count(leg_id) AS `exists` FROM `lo_dp_program` WHERE dp_id = ".(int)$program['dulapid']." AND day_number = ".(int)$program['day_number'].";"));
-            if ((int) $check['exists'] < 1) {
-                $sql = "INSERT INTO `lo_dp_program`
+        if (!empty($lo_dp_program)) {
+            foreach ($lo_dp_program as $program) {
+                $check = mysqli_fetch_array(mysqli_query($this->conn, "SELECT count(leg_id) AS `exists` FROM `lo_dp_program` WHERE dp_id = " . (int)$program['dulapid'] . " AND day_number = " . (int)$program['day_number'] . ";"));
+                if ((int)$check['exists'] < 1) {
+                    $sql = "INSERT INTO `lo_dp_program`
 							(`dp_start_program`,
 							`dp_end_program`,
 							`dp_id`,
@@ -596,35 +597,37 @@ class LO
 							`day_number`,
 							`day`)
 						VALUES
-							('".$program['start_program']."',
-							'".$program['end_program']."',
-							".(int)$program['dulapid'].",
-							".(int)$program['active'].",
-							".(int)$program['versionid'].",
-							".(int)$program['day_number'].",
-							'".$program['day_name']."')
+							('" . $program['start_program'] . "',
+							'" . $program['end_program'] . "',
+							" . (int)$program['dulapid'] . ",
+							" . (int)$program['active'] . ",
+							" . (int)$program['versionid'] . ",
+							" . (int)$program['day_number'] . ",
+							'" . $program['day_name'] . "')
 				";
-            } else {
-                $sql = "UPDATE
+                } else {
+                    $sql = "UPDATE
 							`lo_dp_program`
 						SET
-							`dp_start_program` = '".$program['start_program']."',
-							`dp_end_program` = '".$program['end_program']."',
-							`day_active` = ".(int)$program['active'].",
-							`version_id` = ".(int)$program['versionid'].",
-							`day` = '".$program['day_name']."'
+							`dp_start_program` = '" . $program['start_program'] . "',
+							`dp_end_program` = '" . $program['end_program'] . "',
+							`day_active` = " . (int)$program['active'] . ",
+							`version_id` = " . (int)$program['versionid'] . ",
+							`day` = '" . $program['day_name'] . "'
 						WHERE
-							dp_id = ".(int)$program['dulapid']."
-							and day_number = ".(int)$program['day_number']."
+							dp_id = " . (int)$program['dulapid'] . "
+							and day_number = " . (int)$program['day_number'] . "
 				";
+                }
+                $query = mysqli_query($this->conn, $sql);
             }
-            $query = mysqli_query($this->conn, $sql);
         }
 
-        foreach ($lo_dp_exceptii as $exceptie) {
-            $check = mysqli_fetch_array(mysqli_query($this->conn, "SELECT count(leg_id) AS `exists` FROM `lo_dp_day_exceptions` WHERE dp_id = ".(int)$exceptie['dulapid']." AND date(exception_day) = date('".$exceptie['ziua']."');"));
-            if ((int) $check['exists'] < 1) {
-                $sql = "INSERT INTO `lo_dp_day_exceptions`
+        if (!empty($lo_dp_exceptii)) {
+            foreach ($lo_dp_exceptii as $exceptie) {
+                $check = mysqli_fetch_array(mysqli_query($this->conn, "SELECT count(leg_id) AS `exists` FROM `lo_dp_day_exceptions` WHERE dp_id = " . (int)$exceptie['dulapid'] . " AND date(exception_day) = date('" . $exceptie['ziua'] . "');"));
+                if ((int)$check['exists'] < 1) {
+                    $sql = "INSERT INTO `lo_dp_day_exceptions`
 							(`dp_start_program`,
 							`dp_end_program`,
 							`dp_id`,
@@ -632,27 +635,28 @@ class LO
 							`version_id`,
 							`exception_day`)
 						VALUES
-							('".$exceptie['start_program']."',
-							'".$exceptie['end_program']."',
-							".(int)$exceptie['dulapid'].",
-							".(int)$exceptie['active'].",
-							".(int)$exceptie['versionid'].",
-							'".$exceptie['ziua']."')
+							('" . $exceptie['start_program'] . "',
+							'" . $exceptie['end_program'] . "',
+							" . (int)$exceptie['dulapid'] . ",
+							" . (int)$exceptie['active'] . ",
+							" . (int)$exceptie['versionid'] . ",
+							'" . $exceptie['ziua'] . "')
 				";
-            } else {
-                $sql = "UPDATE
+                } else {
+                    $sql = "UPDATE
 							`lo_dp_day_exceptions`
 						SET
-							`dp_start_program` = '".$exceptie['start_program']."',
-							`dp_end_program` = '".$exceptie['end_program']."',
-							`active` = ".(int)$exceptie['active'].",
-							`version_id` = ".(int)$exceptie['versionid']."
+							`dp_start_program` = '" . $exceptie['start_program'] . "',
+							`dp_end_program` = '" . $exceptie['end_program'] . "',
+							`active` = " . (int)$exceptie['active'] . ",
+							`version_id` = " . (int)$exceptie['versionid'] . "
 						WHERE
-							dp_id = ".(int)$exceptie['dulapid']."
-							and date(exception_day) = date('".$exceptie['ziua']."')
+							dp_id = " . (int)$exceptie['dulapid'] . "
+							and date(exception_day) = date('" . $exceptie['ziua'] . "')
 				";
+                }
+                $query = mysqli_query($this->conn, $sql);
             }
-            $query = mysqli_query($this->conn, $sql);
         }
 
         $sql = "SELECT

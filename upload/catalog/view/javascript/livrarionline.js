@@ -18,7 +18,7 @@ $(document).ready(function() {
     });
 
     $('#content').on('shown.bs.collapse', '#collapse-shipping-method', function() {
-        if (last_dp_id) {
+        if (typeof last_dp_id !== 'undefined' && last_dp_id) {
             $('#pp-selected-dp-text').html('Coletul va fi livrat la <b>' + last_dp_name + '</b>');
             $('#pp-selected-dp-text').closest('label').click();
         }
@@ -30,7 +30,7 @@ $(document).ready(function() {
         $('#pp-selected-dp-text').html('Coletul va fi livrat la <b>' + $('#pachetomate option:selected').text() + '</b>');
         $('#harta-pp').hide();
         $('body').removeClass('pp-overlay');
-        if (last_dp_id) {
+        if (typeof last_dp_id !== 'undefined' && last_dp_id) {Í
             $('a[href="#collapse-shipping-method"]').click();
             $('#button-shipping-address').click();
         }

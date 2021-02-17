@@ -42,9 +42,9 @@ class ModelExtensionShippingLivrariOnline extends Model
 			for ($i = 0; $i < $qty; $i++) {
 				$colete[] = array(
 					'greutate' => $product['weight'] ? round((float)$product['weight'] / 1000, 2) : 1,
-					'lungime'  => $product['length'] ? (float)$product['length'] : 1,
-					'latime'   => $product['width'] ? (float)$product['width'] : 1,
-					'inaltime' => $product['height'] ? (float)$product['height'] : 1,
+					'lungime'  => $product['length'] ? (int)$product['length'] : 1,
+					'latime'   => $product['width'] ? (int)$product['width'] : 1,
+					'inaltime' => $product['height'] ? (int)$product['height'] : 1,
 					'continut' => 1,
 					'tipcolet' => 1,
 				);
@@ -192,26 +192,28 @@ class ModelExtensionShippingLivrariOnline extends Model
 							if ($v == $preturi[$value]['f_serviciuid']) {
 								$livrarionline_gratuit_peste_national = floatval($livrarionline_gratuit_peste_national[$k]);
 								$livrarionline_reducere_national = floatval($livrarionline_reducere_national[$k]);
-								$livrarionline_pretfix_national = floatval($livrarionline_pretfix_national[$k]);
+								if ($livrarionline_pretfix_national[$k]) {
+									$livrarionline_pretfix_national = floatval($livrarionline_pretfix_national[$k]);
+								}
 
 								$price_standard = round((float)$preturi[$value]['f_pret'], 2);
 								if ($livrarionline_gratuit_peste_national > 0 && $total >= $livrarionline_gratuit_peste_national) {
 									$price_standard = 0;
 								} else {
 
-									if (!empty($livrarionline_pretfix_national)) {
+									if (!is_array($livrarionline_pretfix_national)) {
 										$price_standard = (float)$livrarionline_pretfix_national;
 									}
 
-									if ($price_standard && $livrarionline_semn_reducere_national && $livrarionline_reducere_national && $livrarionline_tip_reducere_national) {
-										if ($livrarionline_tip_reducere_national == 'V') {
-											if ($livrarionline_semn_reducere_national == 'P') {
+									if ($price_standard && $livrarionline_semn_reducere_national[$k] && $livrarionline_reducere_national && $livrarionline_tip_reducere_national[$k]) {
+										if ($livrarionline_tip_reducere_national[$k] == 'V') {
+											if ($livrarionline_semn_reducere_national[$k] == 'P') {
 												$price_standard += $livrarionline_reducere_national;
 											} else {
 												$price_standard -= $livrarionline_reducere_national;
 											}
 										} else {
-											if ($livrarionline_semn_reducere_national == 'P') {
+											if ($livrarionline_semn_reducere_national[$k] == 'P') {
 												$price_standard += $price_standard * $livrarionline_reducere_national / 100;
 											} else {
 												$price_standard -= $price_standard * $livrarionline_reducere_national / 100;
@@ -220,11 +222,11 @@ class ModelExtensionShippingLivrariOnline extends Model
 										$price_standard = max(0, $price_standard);
 									}
 								}
-								$quote_data[str_replace(" ", "_", $livrarionline_denumire_pretfix_national[$k])] = array(
-									'code'         => 'livrarionline.' . str_replace(" ", "_", $livrarionline_denumire_pretfix_national[$k]),
-									'title'        => $livrarionline_denumire_pretfix_national[$k],
+								$quote_data[str_replace(" ", "_", $denumiri_servicii_national[$k])] = array(
+									'code'         => 'livrarionline.' . str_replace(" ", "_", $denumiri_servicii_national[$k]),
+									'title'        => $denumiri_servicii_national[$k],
 									'cost'         => $this->currency->convert($price_standard, $currency, $this->config->get('config_currency')),
-									'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $livrarionline_denumire_pretfix_national[$k]),
+									'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $denumiri_servicii_national[$k]),
 									'text'         => $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), 1, $this->config->get('config_tax')), $this->config->get('config_currency'), 1.0000000),
 								);
 								break;
@@ -238,6 +240,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 		}
 
 		$matches = self::multidimensional_search($preturi, array('f_tip' => 'n'));
+
 		if ($local == false && !empty($matches)) {
 			if (!empty($matches)) {
 				foreach ($matches as $key => $value) {
@@ -246,25 +249,27 @@ class ModelExtensionShippingLivrariOnline extends Model
 							if ($v == $preturi[$value]['f_serviciuid']) {
 								$livrarionline_gratuit_peste_national = floatval($livrarionline_gratuit_peste_national[$k]);
 								$livrarionline_reducere_national = floatval($livrarionline_reducere_national[$k]);
-								$livrarionline_pretfix_national = floatval($livrarionline_pretfix_national[$k]);
+
+								if ($livrarionline_pretfix_national[$k]) {
+									$livrarionline_pretfix_national = floatval($livrarionline_pretfix_national[$k]);
+								}
 
 								$price_standard = round((float)$preturi[$value]['f_pret'], 2);
 								if ($livrarionline_gratuit_peste_national > 0 && $total >= $livrarionline_gratuit_peste_national) {
 									$price_standard = 0;
 								} else {
-									if (!empty($livrarionline_pretfix_national)) {
+									if (!is_array($livrarionline_pretfix_national)) {
 										$price_standard = (float)$livrarionline_pretfix_national;
 									}
-
-									if ($price_standard && $livrarionline_semn_reducere_national && $livrarionline_reducere_national && $livrarionline_tip_reducere_national) {
-										if ($livrarionline_tip_reducere_national == 'V') {
-											if ($livrarionline_semn_reducere_national == 'P') {
+									if ($price_standard && $livrarionline_semn_reducere_national[$k] && $livrarionline_reducere_national && $livrarionline_tip_reducere_national[$k]) {
+										if ($livrarionline_tip_reducere_national[$k] == 'V') {
+											if ($livrarionline_semn_reducere_national[$k] == 'P') {
 												$price_standard += $livrarionline_reducere_national;
 											} else {
 												$price_standard -= $livrarionline_reducere_national;
 											}
 										} else {
-											if ($livrarionline_semn_reducere_national == 'P') {
+											if ($livrarionline_semn_reducere_national[$k] == 'P') {
 												$price_standard += $price_standard * $livrarionline_reducere_national / 100;
 											} else {
 												$price_standard -= $price_standard * $livrarionline_reducere_national / 100;
@@ -273,11 +278,12 @@ class ModelExtensionShippingLivrariOnline extends Model
 										$price_standard = max(0, $price_standard);
 									}
 								}
-								$quote_data[str_replace(" ", "_", $livrarionline_denumire_pretfix_national[$k])] = array(
-									'code'         => 'livrarionline.' . str_replace(" ", "_", $livrarionline_denumire_pretfix_national[$k]),
-									'title'        => $livrarionline_denumire_pretfix_national[$k],
+
+								$quote_data[str_replace(" ", "_", $denumiri_servicii_national[$k])] = array(
+									'code'         => 'livrarionline.' . str_replace(" ", "_", $denumiri_servicii_national[$k]),
+									'title'        => $denumiri_servicii_national[$k],
 									'cost'         => $this->currency->convert($price_standard, $currency, $this->config->get('config_currency')),
-									'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $livrarionline_denumire_pretfix_national[$k]),
+									'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $denumiri_servicii_national[$k]),
 									'text'         => $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), 1, $this->config->get('config_tax')), $this->config->get('config_currency'), 1.0000000),
 								);
 								break;
