@@ -37,19 +37,20 @@ class ModelExtensionShippingLivrariOnline extends Model
 
 		$colete = array();
 
+		$greutate = 0;
+
 		foreach ($this->cart->getProducts() as $product) {
-			$qty = $product['quantity'];
-			for ($i = 0; $i < $qty; $i++) {
-				$colete[] = array(
-					'greutate' => $product['weight'] ? round((float)$product['weight'] / 1000, 2) : 1,
-					'lungime'  => $product['length'] ? (int)$product['length'] : 1,
-					'latime'   => $product['width'] ? (int)$product['width'] : 1,
-					'inaltime' => $product['height'] ? (int)$product['height'] : 1,
-					'continut' => 1,
-					'tipcolet' => 1,
-				);
-			}
+			$greutate += ($product['weight'] ? round((float)$product['weight'], 2) : 0);
 		}
+
+		$colete[] = array(
+			'greutate' => $greutate,
+			'lungime'  => 1,
+			'latime'   => 1,
+			'inaltime' => 1,
+			'continut' => 4,
+			'tipcolet' => 2,
+		);
 
 		$f_request_awb = array();
 		$f_request_awb['request_data_ridicare'] = date('Y-m-d');

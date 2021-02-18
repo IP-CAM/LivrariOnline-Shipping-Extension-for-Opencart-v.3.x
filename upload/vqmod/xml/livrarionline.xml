@@ -5,6 +5,17 @@
     <vqmver required="true">2.6.0</vqmver>
     <author>DevPro Solutions, office@devpro.ro</author>
 
+    <file path="system/library/template/twig.php" error="skip" info="fix Core Opencart twig files modification">
+        <operation>
+            <search><![CDATA[$file = DIR_TEMPLATE . $filename . '.twig';]]></search>
+            <add position="replace"><![CDATA[$file = modification( DIR_TEMPLATE . $filename . '.twig' );
+			if( class_exists('VQMod') ) {
+				$file = \VQMod::modCheck($file);
+			}
+			]]></add>
+        </operation>
+    </file>
+
     <file name="admin/controller/sale/order.php">
         <operation error="skip" info="load variables">
             <search position="after" index="1"><![CDATA[
@@ -105,7 +116,7 @@
                 $data['lo_total_weight'] = 1;
                 foreach ($this->model_sale_order->getOrderProducts($order_id) as $op) {
                     $product_details = $this->model_catalog_product->getProduct($op['product_id']);
-                    $data['lo_total_weight'] += round($product_details['weight']/1000,2);
+                    $data['lo_total_weight'] += round($product_details['weight'],2);
                 }
 
                 $data['currency_code'] = $order_info['currency_code'];
