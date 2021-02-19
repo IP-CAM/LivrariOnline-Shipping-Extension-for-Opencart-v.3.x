@@ -246,6 +246,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 			if (!empty($matches)) {
 				foreach ($matches as $key => $value) {
 					if (in_array($preturi[$value]['f_serviciuid'], $id_servicii_national)) {
+						if (in_array(strtolower($address['city']), array('sibiu','cisnadie','cisnădie','selimbar','șelimbăr'))) {break;}
 						foreach ($id_servicii_national as $k => $v) {
 							if ($v == $preturi[$value]['f_serviciuid']) {
 								$livrarionline_gratuit_peste_national = floatval($livrarionline_gratuit_peste_national[$k]);
@@ -338,7 +339,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 				);
 			} else {
 				$matches = self::multidimensional_search($preturi, array('f_tip' => 'p'));
-
+				if ($greutate > 10) {break;}
 				if (!empty($matches)) {
 					foreach ($matches as $key => $value) {
 						if (in_array($preturi[$value]['f_serviciuid'], $id_servicii_pachetomat)) {
@@ -382,7 +383,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 
 				$quote_data[str_replace(" ", "_", $denumiri_servicii_pachetomat[$i])] = array(
 					'code'         => 'livrarionline.' . str_replace(" ", "_", $denumiri_servicii_pachetomat[$i]) . '.p.' . (isset($this->session->data['dp_id']) ? $this->session->data['dp_id'] : ''),
-					'title'        => '<a title="Modifica punctul de ridicare">' . $denumiri_servicii_pachetomat[$i] . '</a> <span id="pp-selected-dp-text">' . (!empty($this->session->data['dp_id']) ? $this->session->data['dp_name'] : '<a title="Modifica punctul de ridicare">Nu a fost selectat pachetomat</a> <span id="pp-selected-dp-text2"></span><a>') . '</span>',
+					'title'        => '<a title="Modifica punctul de ridicare">' . $denumiri_servicii_pachetomat[$i] . '</a> <span id="pp-selected-dp-text">' . (!empty($this->session->data['dp_id']) ? $this->session->data['dp_name'] : '<a title="Modifica punctul de ridicare">Nu a fost selectat pachetomat</a> <span id="pp-selected-dp-text2"></span>') . '</span>',
 					'cost'         => $this->currency->convert($price_standard, $currency, $this->config->get('config_currency')),
 					'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $denumiri_servicii_pachetomat[$i]),
 					'text'         => '<span>' . ($error ? $error : $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), 1, $this->config->get('config_tax')), $this->config->get('config_currency'), 1.0000000)) . '</span>',
