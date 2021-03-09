@@ -1,27 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <modification>
-    <id>Livrari Online</id>
+    <name>LivrariOnline</name>
     <version>1.0.0</version>
-    <vqmver required="true">2.6.0</vqmver>
-    <author>DevPro Solutions, office@devpro.ro</author>
+    <code>livrarionline</code>
+    <author>LivrariOnline</author>
+    <link>https://livrarionline.ro</link>
 
-    <file path="system/library/template/twig.php" error="skip" info="fix Core Opencart twig files modification">
-        <operation>
-            <search><![CDATA[$file = DIR_TEMPLATE . $filename . '.twig';]]></search>
-            <add position="replace"><![CDATA[$file = modification( DIR_TEMPLATE . $filename . '.twig' );
-			if( class_exists('VQMod') ) {
-				$file = \VQMod::modCheck($file);
-			}
-			]]></add>
-        </operation>
-    </file>
-
-    <file name="admin/controller/sale/order.php">
+    <file path="admin/controller/sale/order.php">
         <operation error="skip" info="load variables">
-            <search position="after" index="1"><![CDATA[
+            <search index="0"><![CDATA[
                 if ($order_info) {
             ]]></search>
-            <add><![CDATA[
+            <add position="after"><![CDATA[
                 // construiesc selectul pentru servicii
                 $data['denumiri_servicii_pachetomat'] = $this->config->get('livrarionline_denumire_serviciu_pachetomat');
                 $data['id_servicii_pachetomat'] = $this->config->get('livrarionline_id_serviciu_pachetomat');
@@ -150,30 +140,30 @@
         </operation>
     </file>
 
-    <file name="admin/view/template/sale/order_info.twig">
+    <file path="admin/view/template/sale/order_info.twig">
         <operation error="skip" info="resfresh page after status change">
-            <search position="after"><![CDATA[
+            <search><![CDATA[
                 $('textarea[name=\'comment\']').val('');
             ]]></search>
-            <add><![CDATA[
+            <add position="after"><![CDATA[
                 location.reload();
             ]]></add>
         </operation>
 
         <operation error="skip" info="tab title">
-            <search position="before" index="1"><![CDATA[
+            <search index="0"><![CDATA[
                 {% for tab in tabs %}
             ]]></search>
-            <add><![CDATA[
+            <add position="before"><![CDATA[
                 <li><a href="#tab-livrarionline" data-toggle="tab">Livrari online</a></li>
             ]]></add>
         </operation>
 
         <operation error="skip" info="tab content">
-            <search position="before" index="2"><![CDATA[
+            <search index="1"><![CDATA[
                 {% for tab in tabs %}
             ]]></search>
-            <add><![CDATA[
+            <add position="before"><![CDATA[
 <style>
 #tab-livrarionline table.borderless td, #tab-livrarionline table.borderless th {
   border: none !important;
@@ -192,7 +182,7 @@
     {% else %}
     {% set var = 'block' %}
     {% endif %}
-    <form name="awb" id="awb" method="post" action="index.php?route=extension/shipping/livrarionline/getAWB&user_token={{ user_token }}" style="display: {{ var }}; border-top: 1px dashed #999; padding: 5px 0; margin: 5px 0;">
+    <form path="awb" id="awb" method="post" action="index.php?route=extension/shipping/livrarionline/getAWB&user_token={{ user_token }}" style="display: {{ var }}; border-top: 1px dashed #999; padding: 5px 0; margin: 5px 0;">
       {% if not lo_raspuns.awb %}
       <table cellspacing="2" cellpadding="2" width="100%" class="table borderless">
         <tr>
@@ -370,10 +360,10 @@
         </operation>
 
         <operation error="skip" info="tab script">
-            <search position="before" index="1"><![CDATA[
+            <search index="0"><![CDATA[
                 //--></script>
             ]]></search>
-            <add><![CDATA[
+            <add position="before"><![CDATA[
 
 $(document).ready(function() {
   var $formAWB = $('#awb');
@@ -501,23 +491,23 @@ $(document).ready(function() {
             ]]></add>
         </operation>
     </file>
-    <file name="catalog/model/extension/payment/cod.php">
+    <file path="catalog/model/extension/payment/cod.php">
         <operation>
-            <search position="before"><![CDATA[$method_data = array();]]></search>
-            <add><![CDATA[
-			if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
-			    if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
-			        $status = false;
-			    }
-			}
-			]]>
+            <search><![CDATA[$method_data = array();]]></search>
+            <add position="before"><![CDATA[
+            if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
+                if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
+                    $status = false;
+                }
+            }
+            ]]>
             </add>
         </operation>
     </file>
-    <file name="catalog/controller/checkout/shipping_method.php">
+    <file path="catalog/controller/checkout/shipping_method.php">
         <operation>
-            <search position="before"><![CDATA[$this->response->addHeader('Content-Type: application/json');]]></search>
-            <add><![CDATA[
+            <search><![CDATA[$this->response->addHeader('Content-Type: application/json');]]></search>
+            <add position="before"><![CDATA[
             if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
                 if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
                     if (empty($this->session->data['dp_id'])) {
@@ -525,32 +515,32 @@ $(document).ready(function() {
                         $json['error']['warning'] = $this->language->get('error_select_delivery_point');
                     }
                 }
-			}
-			]]>
+            }
+            ]]>
             </add>
         </operation>
     </file>
-    <file name="catalog/controller/checkout/confirm.php">
+    <file path="catalog/controller/checkout/confirm.php">
         <operation>
-            <search position="before"><![CDATA[// Validate if payment address has been set.]]></search>
-            <add><![CDATA[
+            <search><![CDATA[// Validate if payment address has been set.]]></search>
+            <add position="before"><![CDATA[
             if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
                 if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
                     if (empty($this->session->data['dp_id'])) {
                         $redirect = $this->url->link('checkout/checkout', '', true);
                     }
                 }
-			}
-			]]>
+            }
+            ]]>
             </add>
         </operation>
     </file>
-    <file name="catalog/controller/checkout/checkout.php">
+    <file path="catalog/controller/checkout/checkout.php">
         <operation error="skip" info="load variables">
-            <search position="after" index="1"><![CDATA[
+            <search index="0"><![CDATA[
               $data['shipping_required'] =
             ]]></search>
-            <add><![CDATA[
+            <add position="after"><![CDATA[
               $this->document->addScript('catalog/view/javascript/livrarionline-public.js');
               $this->document->addScript('catalog/view/javascript/livrarionline.js');
               $this->document->addStyle('catalog/model/extension/shipping/lo/style.css');
@@ -609,12 +599,12 @@ $(document).ready(function() {
         </operation>
     </file>
 
-    <file name="catalog/view/theme/*/template/checkout/checkout.twig">
+    <file path="catalog/view/theme/*/template/checkout/checkout.twig">
         <operation error="skip" info="scripts">
-            <search position="before" index="1"><![CDATA[
+            <search index="0"><![CDATA[
               {{ footer }}
             ]]></search>
-            <add><![CDATA[
+            <add position="before"><![CDATA[
 <div id="harta-pp" class="pp-container">
     <div class="pp-panel">
         <div class="pp-panel__header">
@@ -682,12 +672,12 @@ $(document).ready(function() {
         </operation>
     </file>
 
-    <file name="catalog/controller/api/shipping.php">
+    <file path="catalog/controller/api/shipping.php">
         <operation error="skip" info="load variables">
-            <search position="before" index="1"><![CDATA[
+            <search index="0"><![CDATA[
               public function address() {
             ]]></search>
-            <add><![CDATA[
+            <add position="before"><![CDATA[
               public function livrarionline_issn() {
                   $loginid = $this->config->get('livrarionline_loginid');
                   $key = $this->config->get('livrarionline_key');
@@ -782,7 +772,7 @@ $(document).ready(function() {
                     lo_dp_program p ON dp.dp_id = p.dp_id and day_sort_order > 4
                   WHERE
                     dp_active > 0
-				          " . ($_POST['oras'] ? ' and dp_oras = "' . $_POST['oras'] . '"' : '') . "
+                          " . ($_POST['oras'] ? ' and dp_oras = "' . $_POST['oras'] . '"' : '') . "
                   " . ($this->config->get('livrarionline_use_thermo') ? ' and termosensibil = 0' : '') . "
                   group by
                     dp.dp_id
@@ -824,12 +814,12 @@ $(document).ready(function() {
         </operation>
     </file>
 
-    <file name="catalog/controller/journal3/checkout.php">
+    <file path="catalog/controller/journal3/checkout.php">
         <operation error="skip" info="load variables">
-            <search position="before" index="1"><![CDATA[
+            <search index="0"><![CDATA[
               $data['breadcrumbs'] = array();
             ]]></search>
-            <add><![CDATA[
+            <add position="before"><![CDATA[
               $this->journal3->document->addScript('catalog/view/javascript/livrarionline-public.js');
               $this->journal3->document->addScript('catalog/view/javascript/livrarionline.js');
               $this->journal3->document->addStyle('catalog/model/extension/shipping/lo/style.css');
@@ -888,12 +878,12 @@ $(document).ready(function() {
         </operation>
     </file>
 
-    <file name="catalog/view/theme/*/template/journal3/checkout/checkout.twig">
+    <file path="catalog/view/theme/*/template/journal3/checkout/checkout.twig">
         <operation error="skip" info="scripts">
-            <search position="before" index="1"><![CDATA[
+            <search index="0"><![CDATA[
               {{ footer }}
             ]]></search>
-            <add><![CDATA[
+            <add position="before"><![CDATA[
 <div id="harta-pp" class="pp-container">
     <div class="pp-panel">
         <div class="pp-panel__header">
@@ -961,10 +951,10 @@ $(document).ready(function() {
         </operation>
     </file>
 
-    <file name="catalog/controller/journal3/checkout.php">
+    <file path="catalog/controller/journal3/checkout.php">
         <operation>
-            <search position="after"><![CDATA[$json = $this->getCheckoutData($data);]]></search>
-            <add><![CDATA[
+            <search><![CDATA[$json = $this->getCheckoutData($data);]]></search>
+            <add position="after"><![CDATA[
             if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
                 if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
                     if (empty($this->session->data['dp_id'])) {
@@ -972,8 +962,8 @@ $(document).ready(function() {
                         $error['shipping_code'] = $this->language->get('error_select_delivery_point');
                     }
                 }
-			}
-			]]>
+            }
+            ]]>
             </add>
         </operation>
     </file>

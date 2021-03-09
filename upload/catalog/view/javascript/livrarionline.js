@@ -30,7 +30,7 @@ $(document).ready(function() {
         $('#pp-selected-dp-text').html('Coletul va fi livrat la <b>' + $('#pachetomate option:selected').text() + '</b>');
         $('#harta-pp').hide();
         $('body').removeClass('pp-overlay');
-        if (typeof last_dp_id !== 'undefined' && last_dp_id) {Í
+        if (typeof last_dp_id !== 'undefined' && last_dp_id) {
             $('a[href="#collapse-shipping-method"]').click();
             $('#button-shipping-address').click();
         }
