@@ -246,7 +246,6 @@ class ModelExtensionShippingLivrariOnline extends Model
 			if (!empty($matches)) {
 				foreach ($matches as $key => $value) {
 					if (in_array($preturi[$value]['f_serviciuid'], $id_servicii_national)) {
-						if (in_array(strtolower($address['city']), array('sibiu','cisnadie','cisnădie','selimbar','șelimbăr'))) {break;}
 						foreach ($id_servicii_national as $k => $v) {
 							if ($v == $preturi[$value]['f_serviciuid']) {
 								$livrarionline_gratuit_peste_national = floatval($livrarionline_gratuit_peste_national[$k]);
@@ -339,13 +338,15 @@ class ModelExtensionShippingLivrariOnline extends Model
 				);
 			} else {
 				$matches = self::multidimensional_search($preturi, array('f_tip' => 'p'));
-				if ($greutate > 10) {break;}
 				if (!empty($matches)) {
 					foreach ($matches as $key => $value) {
 						if (in_array($preturi[$value]['f_serviciuid'], $id_servicii_pachetomat)) {
 							foreach ($id_servicii_pachetomat as $k => $v) {
 								if ($v == $preturi[$value]['f_serviciuid']) {
 									$price_standard = round((float)$preturi[$value]['f_pret'], 2);
+									if ($livrarionline_gratuit_peste_pachetomat[$i] > 0 && $total > $livrarionline_gratuit_peste_pachetomat[$i]) {
+										$price_standard = 0;
+									}
 									break;
 								}
 							}
