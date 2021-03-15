@@ -228,7 +228,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 									'title'        => $denumiri_servicii_national[$k],
 									'cost'         => $this->currency->convert($price_standard, $currency, $this->config->get('config_currency')),
 									'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $denumiri_servicii_national[$k]),
-									'text'         => $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), 1, $this->config->get('config_tax')), $this->config->get('config_currency'), 1.0000000),
+									'text'         => $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), $this->config->get('config_tax'), 1), $this->config->get('config_currency'), 1.0000000),
 								);
 								break;
 							}
@@ -285,7 +285,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 									'title'        => $denumiri_servicii_national[$k],
 									'cost'         => $this->currency->convert($price_standard, $currency, $this->config->get('config_currency')),
 									'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $denumiri_servicii_national[$k]),
-									'text'         => $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), 1, $this->config->get('config_tax')), $this->config->get('config_currency'), 1.0000000),
+									'text'         => $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), $this->config->get('config_tax'), 1), $this->config->get('config_currency'), 1.0000000),
 								);
 								break;
 							}
@@ -334,7 +334,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 					'title'        => '<a title="Modifica punctul de ridicare">' . $livrarionline_denumire_pretfix_pachetomat[$i] . '</a> <span id="pp-selected-dp-text"></span>',
 					'cost'         => $this->currency->convert($price_standard, $currency, $this->config->get('config_currency')),
 					'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $livrarionline_denumire_pretfix_pachetomat[$i]),
-					'text'         => '<span>' . $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), 1, $this->config->get('config_tax')), $this->config->get('config_currency'), 1.0000000) . '</span>',
+					'text'         => '<span>' . $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), $this->config->get('config_tax'), 1), $this->config->get('config_currency'), 1.0000000) . '</span>',
 				);
 			} else {
 				$matches = self::multidimensional_search($preturi, array('f_tip' => 'p'));
@@ -387,7 +387,7 @@ class ModelExtensionShippingLivrariOnline extends Model
 					'title'        => '<a title="Modifica punctul de ridicare">' . $denumiri_servicii_pachetomat[$i] . '</a> <span id="pp-selected-dp-text">' . (!empty($this->session->data['dp_id']) ? $this->session->data['dp_name'] : '<a title="Modifica punctul de ridicare">Nu a fost selectat pachetomat</a> <span id="pp-selected-dp-text2"></span>') . '</span>',
 					'cost'         => $this->currency->convert($price_standard, $currency, $this->config->get('config_currency')),
 					'tax_class_id' => 'livrarionline.tax.' . str_replace(" ", "_", $denumiri_servicii_pachetomat[$i]),
-					'text'         => '<span>' . ($error ? $error : $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), 1, $this->config->get('config_tax')), $this->config->get('config_currency'), 1.0000000)) . '</span>',
+					'text'         => '<span>' . ($error ? $error : $this->currency->format($this->tax->calculate($this->currency->convert($price_standard, $currency, $this->config->get('config_currency')), $this->config->get('config_tax'), 1), $this->config->get('config_currency'), 1.0000000)) . '</span>',
 				);
 
 				$error = '';
