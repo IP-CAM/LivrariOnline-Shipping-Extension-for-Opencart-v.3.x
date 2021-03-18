@@ -103,10 +103,10 @@
 
                 $this->load->model('catalog/product');
                 $data['lo_total'] = number_format($order_info['total'], 2, '.', '');
-                $data['lo_total_weight'] = 1;
+                $data['lo_total_weight'] = 0;
                 foreach ($this->model_sale_order->getOrderProducts($order_id) as $op) {
                     $product_details = $this->model_catalog_product->getProduct($op['product_id']);
-                    $data['lo_total_weight'] += round($product_details['weight'],2);
+                    $data['lo_total_weight'] += (float)$op['quantity']*round($product_details['weight'],2);
                 }
 
                 $data['currency_code'] = $order_info['currency_code'];
