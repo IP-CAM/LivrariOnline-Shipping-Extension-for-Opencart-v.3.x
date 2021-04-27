@@ -379,6 +379,23 @@ class ModelExtensionShippingLivrariOnline extends Model
 								$price_standard = max(0, $price_standard);
 							}
 						}
+					} else {
+						if ($livrarionline_semn_reducere_pachetomat[$i] && $livrarionline_reducere_pachetomat[$i] && $livrarionline_tip_reducere_pachetomat[$i]) {
+							if ($livrarionline_tip_reducere_pachetomat[$i] == 'V') {
+								if ($livrarionline_semn_reducere_pachetomat[$i] == 'P') {
+									$price_standard += $livrarionline_reducere_pachetomat[$i];
+								} else {
+									$price_standard -= $livrarionline_reducere_pachetomat[$i];
+								}
+							} else {
+								if ($livrarionline_semn_reducere_pachetomat[$i] == 'P') {
+									$price_standard += $price_standard * $livrarionline_reducere_pachetomat[$i] / 100;
+								} else {
+									$price_standard -= $price_standard * $livrarionline_reducere_pachetomat[$i] / 100;
+								}
+							}
+							$price_standard = max(0, $price_standard);
+						}
 					}
 				}
 
