@@ -32,7 +32,7 @@ $(document).ready(function() {
         $('body').removeClass('pp-overlay');
         if (typeof last_dp_id !== 'undefined' && last_dp_id) {
             $('a[href="#collapse-shipping-method"]').click();
-            $('#button-shipping-address').click();
+            $('#button-shipping-address, #button-guest-shipping').click();
         }
     });
 
