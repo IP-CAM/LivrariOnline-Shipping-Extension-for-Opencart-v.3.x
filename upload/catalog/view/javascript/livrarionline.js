@@ -20,7 +20,7 @@ $(document).ready(function() {
     $('#content').on('shown.bs.collapse', '#collapse-shipping-method', function() {
         if (typeof last_dp_id !== 'undefined' && last_dp_id) {
             $('#pp-selected-dp-text').html('Coletul va fi livrat la <b>' + last_dp_name + '</b>');
-            $('#pp-selected-dp-text').closest('label').click();
+            $('#pp-selected-dp-text').closest('label').find('input').prop( "checked", true );
         }
     });
 
