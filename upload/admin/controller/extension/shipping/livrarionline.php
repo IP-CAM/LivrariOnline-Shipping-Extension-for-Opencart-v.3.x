@@ -424,7 +424,7 @@ class ControllerExtensionShippingLivrariOnline extends Controller {
 			`version_id` int(11) NOT NULL,
 			`stamp_created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			`dp_temperatura` decimal(10,2) DEFAULT NULL,
-			`dp_indicatii` text CHARACTER SET utf8,
+			`dp_indicatii` text CHARACTER SET utf8_general_ci,
 			`termosensibil` tinyint(1) NOT NULL DEFAULT '0',
 			PRIMARY KEY (`dp_id`)
 		) AUTO_INCREMENT=1");

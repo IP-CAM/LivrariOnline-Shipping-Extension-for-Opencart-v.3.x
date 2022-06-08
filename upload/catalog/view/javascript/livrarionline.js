@@ -31,6 +31,7 @@ $(document).ready(function() {
         $('#harta-pp').hide();
         $('body').removeClass('pp-overlay');
         if (typeof last_dp_id !== 'undefined' && last_dp_id) {
+            window['_QuickCheckout'].save(); // pentru journal3
             $('a[href="#collapse-shipping-method"]').click();
             $('#button-shipping-address, #button-guest-shipping').click();
         }
@@ -79,13 +80,14 @@ $(document).ready(function() {
                 var oras_selectat = response.selected;
                 var pselected = response.pselected;
                 var jselected = response.jselected;
-
+                $('#orase').empty();
                 $('#orase').append($('<option>', {
                     value: 0,
                     text: 'Selectati un oras',
                     disabled: true,
                     selected: true
                 }));
+                $('#pachetomate').empty();
                 $('#pachetomate').append($('<option>', {
                     value: 0,
                     text: 'Selectati un punct de ridicare',
@@ -131,7 +133,7 @@ $(document).ready(function() {
                 var pachetomate = response.pachetomate;
                 var pachetomat_selectat = response.selected;
                 var oselected = response.oselected;
-
+                $('#pachetomate').empty();
                 $('#pachetomate').append($('<option>', {
                     value: 0,
                     text: 'Selectati un punct de ridicare',

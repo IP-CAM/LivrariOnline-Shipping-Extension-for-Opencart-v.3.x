@@ -510,7 +510,8 @@ $(document).ready(function() {
             <add position="before"><![CDATA[
             if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
                 if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
-                    if (empty($this->session->data['dp_id'])) {
+                    $pachetomat = explode('.p.',$this->session->data['shipping_method']['code']);
+                    if (empty($this->session->data['dp_id']) || empty($pachetomat[1])) {
                         $this->load->language('extension/shipping/livrarionline');
                         $json['error']['warning'] = $this->language->get('error_select_delivery_point');
                     }
@@ -953,11 +954,12 @@ $(document).ready(function() {
 
     <file path="catalog/controller/journal3/checkout.php">
         <operation>
-            <search><![CDATA[$json = $this->getCheckoutData($data);]]></search>
+            <search><![CDATA[$json = array_replace($this->getCheckoutData($data), $json);]]></search>
             <add position="after"><![CDATA[
             if (isset($this->session->data['shipping_method']['code']) && strpos($this->session->data['shipping_method']['code'], 'livrarionline.') !== false) {
                 if (strpos($this->session->data['shipping_method']['code'],'.p.') !== false) {
-                    if (empty($this->session->data['dp_id'])) {
+                    $pachetomat = explode('.p.',$this->session->data['shipping_method']['code']);
+                    if (empty($this->session->data['dp_id']) || empty($pachetomat[1])) {
                         $this->load->language('extension/shipping/livrarionline');
                         $error['shipping_code'] = $this->language->get('error_select_delivery_point');
                     }
