@@ -39,8 +39,8 @@ class ModelExtensionShippingLivrariOnline extends Model
 
 		$greutate = 0;
 
-		foreach ($this->cart->getProducts() as $product) {
-			$greutate += ($product['weight'] ? round((float)$product['weight'], 2) : 0);
+		foreach ( $this->cart->getProducts() as $product ) {
+			$greutate += ( $product['weight'] ? round( (float) $product['weight'] / ( $this->weight->getUnit( $product['weight_class_id'] ) == 'g' ? 1000 : 1 ), 2 ) : 0 );
 		}
 
 		$colete[] = array(
