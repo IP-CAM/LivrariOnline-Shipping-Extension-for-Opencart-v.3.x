@@ -1,5 +1,86 @@
-$(document).ready(function() {
-    $('#content').on('click', 'input[value^="livrarionline."][value*=".p."], input[value^="livrarionline."][value*=".p."] + a, #pp-selected-dp-text, #pp-selected-dp-text2', function() {
+$(document).ready(function () {
+    var last_dp_id;
+
+    var map;
+
+    function plotMarkers(m) {
+        if (m) {
+            map.removeMarkers();
+            markers_data = [];
+            m.forEach(function (marker) {
+                var temperatura = '';
+                if (typeof marker.temperatura !== undefined && marker.temperatura) {
+                    temperatura = '<p><b>Temperatura: </b>' + marker.dp_temperatura.split('.')[0] + '<sup>o</sup>C</p>';
+                }
+                markers_data.push({
+                    id: marker.dp_id,
+                    lat: parseFloat(marker.dp_gps_lat),
+                    lng: parseFloat(marker.dp_gps_long),
+                    title: marker.dp_denumire,
+                    icon: {
+                        size: new google.maps.Size(20, 30),
+                        url: icon
+                    },
+                    infoWindow: {
+                        content: '<div class="pp-map__infowindow infowindow">\
+				  				<div class="infowindow-header">\
+									<div class="infowindow-body">\
+										<h3 class="infowindow-title">' + marker.dp_denumire + '</h3>\
+										<p>' + marker.dp_adresa + ', ' + marker.dp_oras + ', ' + marker.dp_judet + ' (' + (marker.dp_indicatii ? marker.dp_indicatii : '') + ')</p>\
+										<hr class="hr--dashed" />\
+										' + temperatura + '\
+										<div>' + marker.orar + '</div>\
+				 '
+                    },
+                    run_ajax: true,
+                    click: function (t) {
+                        let id = t.id;
+                        if (id > 0 && t.run_ajax && marker.dp_active > 0 && marker.dp_active != 10) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: 'index.php?route=api/shipping/livrarionline_pachetomat',
+                                method: 'post',
+                                data: {
+                                    'pachetomat': id
+                                },
+                                beforeSend: function () {
+                                },
+                                success: function (response) {
+                                    last_dp_id = response.pachetomat.id;
+                                    $('#judete').val(response.pachetomat.judet).trigger('change');
+                                    $('.jconfirm-buttons > .btn-lo-right').prop('disabled', '');
+                                },
+                                error: function () {
+                                }
+                            });
+                        } else {
+                            t.run_ajax = true;
+                        }
+                    },
+                });
+            });
+            map.addMarkers(markers_data);
+            map.fitZoom();
+        }
+    }
+
+    function showMarkerDetails(dp_id) {
+        map.markers.forEach(function (value, index) {
+            if (value.id == dp_id) {
+                position = map.markers[index].getPosition();
+                lat = position.lat();
+                lng = position.lng();
+                map.setCenter(lat, lng);
+                map.setZoom(15);
+                map.markers[index].run_ajax = false;
+                google.maps.event.trigger(map.markers[index], 'click');
+            }
+        });
+
+    }
+
+    $('#content').on('click', 'input[value^="livrarionline."][value*=".p."], input[value^="livrarionline."][value*=".p."] + a, .pp-selected-dp-text, .pp-selected-dp-text2', function () {
         $('#harta-pp').css({
             'transform': 'translateY(0)',
             'z-index': '999',
@@ -17,23 +98,22 @@ $(document).ready(function() {
         plotMarkers(ppLocationsArray);
     });
 
-    $('#content').on('shown.bs.collapse', '#collapse-shipping-method', function() {
+    $('#content').on('shown.bs.collapse', '#collapse-shipping-method', function () {
         if (typeof last_dp_id !== 'undefined' && last_dp_id) {
-            $('#pp-selected-dp-text').html('Coletul va fi livrat la <b>' + last_dp_name + '</b>');
-            $('#pp-selected-dp-text').closest('label').find('input').prop( "checked", true );
+            $('.pp-selected-dp-text').html('Coletul va fi livrat la <b>' + last_dp_name + '</b>');
+            $('.pp-selected-dp-text').closest('label').click();
         }
     });
 
     $('#pp-close').on('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        $('#pp-selected-dp-text').html('Coletul va fi livrat la <b>' + $('#pachetomate option:selected').text() + '</b>');
+        $('.pp-selected-dp-text').html('Coletul va fi livrat la <b>' + $('#pachetomate option:selected').text() + '</b>');
         $('#harta-pp').hide();
         $('body').removeClass('pp-overlay');
         if (typeof last_dp_id !== 'undefined' && last_dp_id) {
-            window['_QuickCheckout'].save(); // pentru journal3
             $('a[href="#collapse-shipping-method"]').click();
-            $('#button-shipping-address, #button-guest-shipping').click();
+            $('#button-shipping-address').click();
         }
     });
 
@@ -58,7 +138,9 @@ $(document).ready(function() {
         plotMarkers(ppLocationsArray);
     });
 
-    $('#harta-pp').on('change', '#judete', function() {
+    $('#harta-pp').on('change', '#judete', function (e, data) {
+        e.preventDefault();
+        e.stopPropagation();
         var js = $('option:selected', this).val();
         $('.pp-panel__body', '#order_review').show();
         $.ajax({
@@ -80,14 +162,13 @@ $(document).ready(function() {
                 var oras_selectat = response.selected;
                 var pselected = response.pselected;
                 var jselected = response.jselected;
-                $('#orase').empty();
+
                 $('#orase').append($('<option>', {
                     value: 0,
                     text: 'Selectati un oras',
                     disabled: true,
                     selected: true
                 }));
-                $('#pachetomate').empty();
                 $('#pachetomate').append($('<option>', {
                     value: 0,
                     text: 'Selectati un punct de ridicare',
@@ -116,7 +197,7 @@ $(document).ready(function() {
         });
     });
 
-    $('#harta-pp').on('change', '#orase', function() {
+    $('#harta-pp').on('change', '#orase', function () {
         var os = $('option:selected', this).val();
         $.ajax({
             type: "POST",
@@ -133,7 +214,7 @@ $(document).ready(function() {
                 var pachetomate = response.pachetomate;
                 var pachetomat_selectat = response.selected;
                 var oselected = response.oselected;
-                $('#pachetomate').empty();
+
                 $('#pachetomate').append($('<option>', {
                     value: 0,
                     text: 'Selectati un punct de ridicare',
@@ -166,7 +247,7 @@ $(document).ready(function() {
         });
     });
 
-    $('#harta-pp').on('change', '#pachetomate', function() {
+    $('#harta-pp').on('change', '#pachetomate', function () {
         var dp_id = $('option:selected', this).val();
         $.ajax({
             type: "POST",
