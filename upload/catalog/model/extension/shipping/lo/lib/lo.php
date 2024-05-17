@@ -139,7 +139,7 @@ class LO
 
     public function PrintAwb($f_request, $class)
     {
-        return '<a class="'.$class.'" id="print-awb" href="http://api.livrarionline.ro/Lobackend_print/PrintAwb.aspx?f_login='.$this->f_login.'&awb='.$f_request['awb'].'" target="_blank">Click pentru print AWB</a>';
+        return '<a class="'.$class.'" id="print-awb" href="https://api.livrarionline.ro/Lobackend_print/PrintAwb.aspx?f_login='.$this->f_login.'&awb='.$f_request['awb'].'" target="_blank">Click pentru print AWB</a>';
     }
 
     public function Tracking($f_request)
